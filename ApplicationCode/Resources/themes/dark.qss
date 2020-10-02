@@ -75,6 +75,10 @@ RiuQwtPlotWidget {
     color: $textColor;
 }
 
+QwtPlot QWidget {
+    text-color: $textColor;
+}
+
 QwtTextLabel {
     color: $textColor;
 }
