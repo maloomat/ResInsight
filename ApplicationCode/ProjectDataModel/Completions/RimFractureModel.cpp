@@ -207,8 +207,6 @@ RimFractureModel::RimFractureModel()
 //--------------------------------------------------------------------------------------------------
 RimFractureModel::~RimFractureModel()
 {
-    clearBarrierAnnotation();
-
     RimWellPath*           wellPath           = m_thicknessDirectionWellPath.value();
     RimWellPathCollection* wellPathCollection = RimTools::wellPathCollection();
 
@@ -714,7 +712,10 @@ void RimFractureModel::clearBarrierAnnotation()
     }
 
     RimAnnotationCollectionBase* coll = annotationCollection();
-    coll->onAnnotationDeleted();
+    if ( coll )
+    {
+        coll->onAnnotationDeleted();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
