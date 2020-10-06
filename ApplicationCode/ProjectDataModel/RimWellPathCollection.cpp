@@ -264,6 +264,15 @@ std::vector<RimWellPath*> RimWellPathCollection::addWellPaths( QStringList fileP
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
+void RimWellPathCollection::addWellPath( RimWellPath* wellPath )
+{
+    m_wellPaths.push_back( wellPath );
+    m_mostRecentlyUpdatedWellPath = wellPath;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::vector<RimWellPath*> RimWellPathCollection::wellPaths()
 {
     return m_wellPaths.childObjects();
@@ -301,8 +310,7 @@ void RimWellPathCollection::readAndAddWellPaths( std::vector<RimFileWellPath*>& 
         {
             wellPath->setWellPathColor( RiaColorTables::wellPathsPaletteColors().cycledColor3f( m_wellPaths.size() ) );
             wellPath->setUnitSystem( findUnitSystemForWellPath( wellPath ) );
-            m_mostRecentlyUpdatedWellPath = wellPath;
-            m_wellPaths.push_back( wellPath );
+            addWellPath( wellPath );
         }
 
         progress.incrementProgress();
@@ -318,7 +326,7 @@ void RimWellPathCollection::addWellPaths( const std::vector<RimWellPath*> incomi
 {
     for ( const auto& wellPath : incomingWellPaths )
     {
-        m_wellPaths.push_back( wellPath );
+        addWellPath( wellPath );
     }
     this->sortWellsByName();
 
@@ -348,7 +356,7 @@ std::vector<RimWellLogFile*> RimWellPathCollection::addWellLogs( const QStringLi
             if ( !wellPath )
             {
                 wellPath = new RimWellPath();
-                m_wellPaths.push_back( wellPath );
+                addWellPath( wellPath );
             }
 
             wellPath->addWellLogFile( logFileInfo );
@@ -387,7 +395,7 @@ void RimWellPathCollection::addWellPathFormations( const QStringList& filePaths 
             {
                 wellPath = new RimWellPath();
                 wellPath->setName( it->first );
-                m_wellPaths.push_back( wellPath );
+                addWellPath( wellPath );
                 RiaLogging::info( QString( "Created new well: %1" ).arg( wellPath->name() ) );
             }
             wellPath->setFormationsGeometry( it->second );
