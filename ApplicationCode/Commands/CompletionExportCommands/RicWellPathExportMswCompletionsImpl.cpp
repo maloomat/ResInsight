@@ -930,9 +930,11 @@ RicMswExportInfo
         caseToApply->eclipseCaseData()->activeCellInfo( RiaDefines::PorosityModelType::MATRIX_MODEL );
     RiaEclipseUnitTools::UnitSystem unitSystem = caseToApply->eclipseCaseData()->unitsType();
 
-    const RigWellPath*             wellPathGeometry = wellPath->wellPathGeometry();
-    const std::vector<cvf::Vec3d>& coords           = wellPathGeometry->wellPathPoints();
-    const std::vector<double>&     mds              = wellPathGeometry->measureDepths();
+    auto wellPathGeometry = wellPath->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
+    const std::vector<cvf::Vec3d>& coords = wellPathGeometry->wellPathPoints();
+    const std::vector<double>&     mds    = wellPathGeometry->measuredDepths();
     CVF_ASSERT( !coords.empty() && !mds.empty() );
 
     std::vector<WellPathCellIntersectionInfo> intersections =
@@ -1106,9 +1108,12 @@ std::vector<WellPathCellIntersectionInfo>
 {
     const RigActiveCellInfo* activeCellInfo =
         eclipseCase->eclipseCaseData()->activeCellInfo( RiaDefines::PorosityModelType::MATRIX_MODEL );
-    const RigWellPath*             wellPathGeometry = wellPath->wellPathGeometry();
-    const std::vector<cvf::Vec3d>& coords           = wellPathGeometry->wellPathPoints();
-    const std::vector<double>&     mds              = wellPathGeometry->measureDepths();
+
+    auto wellPathGeometry = wellPath->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
+    const std::vector<cvf::Vec3d>& coords = wellPathGeometry->wellPathPoints();
+    const std::vector<double>&     mds    = wellPathGeometry->measuredDepths();
     CVF_ASSERT( !coords.empty() && !mds.empty() );
 
     const RigMainGrid* mainGrid = eclipseCase->mainGrid();
@@ -1160,9 +1165,9 @@ std::vector<WellPathCellIntersectionInfo>
 //--------------------------------------------------------------------------------------------------
 std::vector<WellPathCellIntersectionInfo>
     RicWellPathExportMswCompletionsImpl::filterIntersections( const std::vector<WellPathCellIntersectionInfo>& intersections,
-                                                              double                initialMD,
-                                                              const RigWellPath*    wellPathGeometry,
-                                                              const RimEclipseCase* eclipseCase )
+                                                              double                               initialMD,
+                                                              gsl::not_null<const RigWellPath*>    wellPathGeometry,
+                                                              gsl::not_null<const RimEclipseCase*> eclipseCase )
 {
     std::vector<WellPathCellIntersectionInfo> filteredIntersections;
 
@@ -1650,10 +1655,14 @@ void RicWellPathExportMswCompletionsImpl::writeMainBoreWelsegsSegment( std::shar
 
     std::vector<std::pair<double, double>> subSegments = createSubSegmentMDPairs( startMD, endMD, maxSegmentLength );
 
+    CVF_ASSERT( exportInfo.wellPath() );
+    auto wellPathGeometry = exportInfo.wellPath()->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
     for ( const auto& [subStartMD, subEndMD] : subSegments )
     {
-        auto startPoint = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subStartMD );
-        auto endPoint   = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subEndMD );
+        auto startPoint = wellPathGeometry->interpolatedPointAlongWellPath( subStartMD );
+        auto endPoint   = wellPathGeometry->interpolatedPointAlongWellPath( subEndMD );
 
         double subStartTVD = -startPoint.z();
         double subEndTVD   = -endPoint.z();
@@ -1711,12 +1720,16 @@ void RicWellPathExportMswCompletionsImpl::writeValveWelsegsSegment( std::shared_
 
     std::vector<std::pair<double, double>> splitSegments = createSubSegmentMDPairs( startMD, endMD, maxSegmentLength );
 
+    CVF_ASSERT( exportInfo.wellPath() );
+    auto wellPathGeometry = exportInfo.wellPath()->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
     for ( const auto& [subStartMD, subEndMD] : splitSegments )
     {
         int subSegmentNumber = ( *segmentNumber )++;
 
-        auto startPoint = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subStartMD );
-        auto endPoint   = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subEndMD );
+        auto startPoint = wellPathGeometry->interpolatedPointAlongWellPath( subStartMD );
+        auto endPoint   = wellPathGeometry->interpolatedPointAlongWellPath( subEndMD );
 
         double subStartTVD = -startPoint.z();
         double subEndTVD   = -endPoint.z();
@@ -1768,6 +1781,10 @@ void RicWellPathExportMswCompletionsImpl::writeCompletionWelsegsSegment( std::sh
         formatter.comment( QString( "%1 connected to %2" ).arg( completion->label() ).arg( segment->label() ) );
     }
 
+    CVF_ASSERT( exportInfo.wellPath() );
+    auto wellPathGeometry = exportInfo.wellPath()->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
     for ( std::shared_ptr<RicMswSubSegment> subSegment : completion->subSegments() )
     {
         double startMD = subSegment->startMD();
@@ -1779,8 +1796,8 @@ void RicWellPathExportMswCompletionsImpl::writeCompletionWelsegsSegment( std::sh
         {
             int subSegmentNumber = ( *segmentNumber )++;
 
-            auto startPoint = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subStartMD );
-            auto endPoint   = exportInfo.wellPath()->wellPathGeometry()->interpolatedPointAlongWellPath( subEndMD );
+            auto startPoint = wellPathGeometry->interpolatedPointAlongWellPath( subStartMD );
+            auto endPoint   = wellPathGeometry->interpolatedPointAlongWellPath( subEndMD );
 
             double subStartTVD = -startPoint.z();
             double subEndTVD   = -endPoint.z();
@@ -1897,9 +1914,7 @@ void RicWellPathExportMswCompletionsImpl::assignFishbonesLateralIntersections( c
                                                                               lateralCoords,
                                                                               lateralMDs );
 
-        RigWellPath pathGeometry;
-        pathGeometry.m_wellPathPoints = lateralCoords;
-        pathGeometry.m_measuredDepths = lateralMDs;
+        RigWellPath pathGeometry( lateralCoords, lateralMDs );
 
         double previousExitMD  = lateralMDs.front();
         double previousExitTVD = -lateralCoords.front().z();
@@ -1974,22 +1989,24 @@ void RicWellPathExportMswCompletionsImpl::assignFractureCompletionsToCellSegment
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-std::vector<RigCompletionData>
-    RicWellPathExportMswCompletionsImpl::generatePerforationIntersections( const RimWellPath*            wellPath,
-                                                                           const RimPerforationInterval* perforationInterval,
-                                                                           int                           timeStep,
-                                                                           RimEclipseCase*               eclipseCase )
+std::vector<RigCompletionData> RicWellPathExportMswCompletionsImpl::generatePerforationIntersections(
+    gsl::not_null<const RimWellPath*>            wellPath,
+    gsl::not_null<const RimPerforationInterval*> perforationInterval,
+    int                                          timeStep,
+    gsl::not_null<RimEclipseCase*>               eclipseCase )
 {
     std::vector<RigCompletionData> completionData;
     const RigActiveCellInfo*       activeCellInfo =
         eclipseCase->eclipseCaseData()->activeCellInfo( RiaDefines::PorosityModelType::MATRIX_MODEL );
 
+    auto wellPathGeometry = wellPath->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
+
     if ( wellPath->perforationIntervalCollection()->isChecked() && perforationInterval->isChecked() &&
          perforationInterval->isActiveOnDate( eclipseCase->timeStepDates()[timeStep] ) )
     {
         std::pair<std::vector<cvf::Vec3d>, std::vector<double>> perforationPointsAndMD =
-            wellPath->wellPathGeometry()->clippedPointSubset( perforationInterval->startMD(),
-                                                              perforationInterval->endMD() );
+            wellPathGeometry->clippedPointSubset( perforationInterval->startMD(), perforationInterval->endMD() );
 
         std::vector<WellPathCellIntersectionInfo> intersectedCells =
             RigWellPathIntersectionTools::findCellIntersectionInfosAlongPath( eclipseCase->eclipseCaseData(),
@@ -2101,11 +2118,13 @@ void RicWellPathExportMswCompletionsImpl::assignBranchNumbers( const RimEclipseC
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-double RicWellPathExportMswCompletionsImpl::tvdFromMeasuredDepth( const RimWellPath* wellPath, double measuredDepth )
+double RicWellPathExportMswCompletionsImpl::tvdFromMeasuredDepth( gsl::not_null<const RimWellPath*> wellPath,
+                                                                  double                            measuredDepth )
 {
-    CVF_ASSERT( wellPath && wellPath->wellPathGeometry() );
+    auto wellPathGeometry = wellPath->wellPathGeometry();
+    CVF_ASSERT( wellPathGeometry );
 
-    double tvdValue = -wellPath->wellPathGeometry()->interpolatedPointAlongWellPath( measuredDepth ).z();
+    double tvdValue = -wellPathGeometry->interpolatedPointAlongWellPath( measuredDepth ).z();
 
     return tvdValue;
 }

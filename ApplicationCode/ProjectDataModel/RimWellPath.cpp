@@ -74,7 +74,7 @@ const char RimWellPath::SIM_WELL_NONE_UI_TEXT[] = "None";
 //--------------------------------------------------------------------------------------------------
 RimWellPath::RimWellPath()
 {
-    CAF_PDM_InitScriptableObjectWithNameAndComment( "WellPath", ":/Well.png", "", "", "WellPath", "The Base class for Well Paths" );
+    CAF_PDM_InitScriptableObjectWithNameAndComment( "WellPath", ":/Well.png", "", "", "WellPath", "A ResInsight Well Path" );
 
     CAF_PDM_InitScriptableFieldNoDefault( &m_name, "Name", "Name", "", "", "" );
     m_name.registerKeywordAlias( "WellPathName" );
@@ -128,7 +128,7 @@ RimWellPath::RimWellPath()
     m_wellPathAttributes = new RimWellPathAttributeCollection;
     m_wellPathAttributes->uiCapability()->setUiTreeHidden( true );
 
-    m_wellPath = nullptr;
+    m_wellPathGeometry = nullptr;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -155,7 +155,7 @@ RimWellPath::~RimWellPath()
             RimWellLogPlotCollection* plotCollection = project->mainPlotCollection()->wellLogPlotCollection();
             if ( plotCollection )
             {
-                plotCollection->removeExtractors( m_wellPath.p() );
+                plotCollection->removeExtractors( m_wellPathGeometry.p() );
             }
         }
     }
@@ -232,30 +232,6 @@ QString RimWellPath::componentTypeLabel() const
 cvf::Color3f RimWellPath::defaultComponentColor() const
 {
     return RiaColorTables::wellPathComponentColors()[componentType()];
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-double RimWellPath::startMD() const
-{
-    if ( wellPathGeometry() )
-    {
-        return wellPathGeometry()->measureDepths().front();
-    }
-    return 0.0;
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-double RimWellPath::endMD() const
-{
-    if ( wellPathGeometry() )
-    {
-        return wellPathGeometry()->measureDepths().back();
-    }
-    return 0.0;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -351,7 +327,7 @@ const RimFractureModelCollection* RimWellPath::fractureModelCollection() const
 //--------------------------------------------------------------------------------------------------
 RigWellPath* RimWellPath::wellPathGeometry()
 {
-    return m_wellPath.p();
+    return m_wellPathGeometry.p();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -359,7 +335,7 @@ RigWellPath* RimWellPath::wellPathGeometry()
 //--------------------------------------------------------------------------------------------------
 const RigWellPath* RimWellPath::wellPathGeometry() const
 {
-    return m_wellPath.p();
+    return m_wellPathGeometry.p();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -563,7 +539,7 @@ caf::PdmFieldHandle* RimWellPath::objectToggleField()
 //--------------------------------------------------------------------------------------------------
 void RimWellPath::setWellPathGeometry( RigWellPath* wellPathModel )
 {
-    m_wellPath = wellPathModel;
+    m_wellPathGeometry = wellPathModel;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -592,12 +568,12 @@ void RimWellPath::defineUiOrdering( QString uiConfigName, caf::PdmUiOrdering& ui
 
     caf::PdmUiGroup* ssihubGroup = uiOrdering.addNewGroup( "Well Info" );
 
-    if ( m_wellPath.notNull() && m_wellPath->rkbDiff() > 0.0 )
+    if ( m_wellPathGeometry.notNull() && m_wellPathGeometry->rkbDiff() > 0.0 )
     {
         ssihubGroup->add( &m_airGap );
     }
 
-    if ( m_wellPath.notNull() && m_wellPath->hasDatumElevation() )
+    if ( m_wellPathGeometry.notNull() && m_wellPathGeometry->hasDatumElevation() )
     {
         ssihubGroup->add( &m_datumElevation );
     }
@@ -702,9 +678,9 @@ RiaEclipseUnitTools::UnitSystem RimWellPath::unitSystem() const
 //--------------------------------------------------------------------------------------------------
 double RimWellPath::airGap() const
 {
-    if ( m_wellPath.notNull() && m_wellPath->rkbDiff() > 0.0 )
+    if ( m_wellPathGeometry.notNull() && m_wellPathGeometry->rkbDiff() > 0.0 )
     {
-        return m_wellPath->rkbDiff();
+        return m_wellPathGeometry->rkbDiff();
     }
     return 0.0;
 }
@@ -714,9 +690,9 @@ double RimWellPath::airGap() const
 //--------------------------------------------------------------------------------------------------
 double RimWellPath::datumElevation() const
 {
-    if ( m_wellPath.notNull() && m_wellPath->hasDatumElevation() )
+    if ( m_wellPathGeometry.notNull() && m_wellPathGeometry->hasDatumElevation() )
     {
-        return m_wellPath->datumElevation();
+        return m_wellPathGeometry->datumElevation();
     }
     return 0.0;
 }
