@@ -129,6 +129,8 @@ RimWellPath::RimWellPath()
     m_wellPathAttributes->uiCapability()->setUiTreeHidden( true );
 
     CAF_PDM_InitFieldNoDefault( &m_childWellPaths, "ChildWellPaths", "Child Well Paths", "", "", "" );
+
+    this->setDeletable( true );
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -368,6 +370,22 @@ double RimWellPath::endMD() const
 void RimWellPath::addChildWellPath( RimWellPath* wellPath )
 {
     m_childWellPaths.push_back( wellPath );
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+bool RimWellPath::hasChildWellPath( RimWellPath* wellPath )
+{
+    return m_childWellPaths.count( wellPath ) != 0u;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void RimWellPath::removeChildWellPath( RimWellPath* wellPath )
+{
+    m_childWellPaths.removeChildObject( wellPath );
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -641,7 +659,12 @@ void RimWellPath::defineUiTreeOrdering( caf::PdmUiTreeOrdering& uiTreeOrdering, 
     }
 
     for ( auto child : m_childWellPaths() )
-        uiTreeOrdering.add( child );
+    {
+        if ( child )
+        {
+            uiTreeOrdering.add( child );
+        }
+    }
 
     uiTreeOrdering.skipRemainingChildren( true );
 }
